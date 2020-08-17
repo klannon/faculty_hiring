@@ -93,14 +93,8 @@ class CandidatePopulation:
                 attrib_vals.append(quality)
             else:
                 values = self.attributes[attrib]
-                x = np.random.random()
-                cumulative_prob = 0
-                for val in sorted(values.keys()):
-                    cumulative_prob += values[val]
-                    if (x < cumulative_prob):
-                        attrib_vals.append(val)
-                        break
-
+                val = np.random.choice(list(values.keys()),p=list(values.values()))
+                attrib_vals.append(val)
 
         return self.record_type(*attrib_vals)
 
