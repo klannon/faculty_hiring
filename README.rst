@@ -20,6 +20,7 @@ assumes gender is binary, so that the mathematical definition of
 equity can be 50% of each gender.)
 
 You can run the "hiring strategy" notebook interactively here:
+
 .. image:: https://mybinder.org/badge_logo.svg
  :target: https://mybinder.org/v2/gh/klannon/faculty_hiring/master?filepath=notebooks%2Fsearch_strategy.ipynb
 
