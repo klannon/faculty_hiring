@@ -75,6 +75,10 @@ def pick_pref(record_type, population, preference_criteria, rank_tolerance,
     if pref == None:
         return best
 
+    # If the overall best didn't pass muster, then no one did
+    if best == None:
+        return None
+    
     if pref.quality + rank_tolerance > best.quality:
         return pref
     else:

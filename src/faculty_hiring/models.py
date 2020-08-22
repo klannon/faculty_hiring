@@ -75,7 +75,7 @@ class CandidatePopulation:
                                       sorted(self.attributes.keys()))
 
 
-    def generate_candidate(self):
+    def generate_candidate(self, min_quality = 2.0):
         """Randomly generate the attributes of one faculty candidate"""
 
         # Generate the attribute values and store them on a list
@@ -88,7 +88,7 @@ class CandidatePopulation:
                 # the 3 sigma tail.
                 # I know this is computationally wasteful, but it's easy
                 quality = abs(np.random.standard_normal())
-                while quality < 3:
+                while quality < min_quality:
                     quality = abs(np.random.standard_normal())
                 attrib_vals.append(quality)
             else:
