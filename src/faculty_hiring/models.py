@@ -29,8 +29,8 @@ class CandidatePopulation:
     """Provides a model for the population of potential faculty in which we are searching."""
 
     def __init__(self):
-        self.attributes = {'quality':None}
-        self.attrib_dtypes = {'quality':np.dtype(float)}
+        self.attributes = {'quality':None, 'mask_':None}
+        self.attrib_dtypes = {'quality':np.dtype(float), 'mask_':np.dtype(bool)}
         self.record_type = None
 
     def add_attribute(self,name,values):
@@ -39,7 +39,7 @@ class CandidatePopulation:
         Args:
           name (str): The attribute name (e.g. gender)
           values (dict): A dictionary mapping the values to probabilities
-                         E.g. {"male":0.5, "female":0.5}
+              E.g. {"male":0.5, "female":0.5}
         """
 
         # Don't allow attempts to add multiple attributes of the same type.
@@ -91,6 +91,8 @@ class CandidatePopulation:
                 while quality < min_quality:
                     quality = abs(np.random.standard_normal())
                 attrib_vals.append(quality)
+            elif attrib == 'mask_':
+                attrib_vals.append(True)
             else:
                 values = self.attributes[attrib]
                 val = np.random.choice(list(values.keys()),p=list(values.values()))
