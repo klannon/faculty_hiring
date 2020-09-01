@@ -27,7 +27,13 @@ def pick_best(record_type, population, filter_criteria=None,
     mask = (population.mask_ & (rank > threshold))
     if filter_criteria != None:
         for key, value in filter_criteria.items():
-            mask &= (getattr(population,key)==value)
+            if isinstance(value,(tuple,list)):
+                tmp_mask = np.zeros_like(population.mask_,dtype=bool)
+                for x in value:
+                    tmp_mask |= (getattr(population,key)==x)
+                mask &= tmp_mask
+            else:
+                mask &= (getattr(population,key)==value)
     if np.count_nonzero(mask) == 0:
         return None
             
@@ -68,36 +74,89 @@ def pick_pref(record_type, population, preference_criteria, rank_tolerance,
           return None.
     """
 
+    # Some sanity checking
+    if isinstance(rank_tolerance,(tuple,list)):
+        if isinstance(preference_criteria, (tuple,list)):
+            if len(rank_tolerance) != len(preference_criteria):
+                raise IndexError('preference_criteria and rank_tolerance '+
+                                 'both have to have compatible lengths')
+        else:
+            raise IndexError('preference_criteria is a scalar while rank_tolerance is a vector.')
+    
     best = pick_best(record_type, population,filter_criteria, rank_attrib, threshold, remove=False)
-
-    if filter_criteria == None:
-        pref_filter = preference_criteria
-    else:
-        # Merge the two, taking preference over filter where the two contradict
-        pref_filter = {**filter_criteria, **preference_criteria}
-        
-    pref = pick_best(record_type, population, pref_filter, rank_attrib, threshold, remove=False)
-
-    if pref == None:
-        if best != None and remove:
-            # The mask_ field in an individual record give the index in the popluation.
-            population.mask_[best.mask_] = False
-        return best
 
     # If the overall best didn't pass muster, then no one did
     if best == None:
         return None
+
+    if not isinstance(preference_criteria,(tuple, list)):
+        preference_criteria = (preference_criteria,)
+    if not isinstance(rank_tolerance,(tuple,list)):
+        rank_tolerance = len(perference_criteria)*[rank_tolerance]
+
+    # We check each one in order.  The first one that satisfies is returned.
+    for pc, tol in zip(preference_criteria,rank_tolerance):
     
-    if pref.quality + rank_tolerance > best.quality:
-        # OK, this is dumb.  I don't have an easier way to remove the
-        # selected candidate than to re-run the selection...
-        if remove:
-            # The mask_ field in an individual record give the index in the popluation.
-            population.mask_[pref.mask_] = False
-        return pref
+        if filter_criteria == None:
+            pref_filter = pc
+        else:
+            # Merge the two.  This requires some care because if the
+            # filter and the preference dictionaries both specify a
+            # property they either have to be rectified.  If they
+            # can't be rectified, then this preference can't be
+            # satisfied
+            pref_filter = dict(filter_criteria)
+            for k in pc.keys():
+                if not k in pref_filter:
+                    pref_filter[k] = pc[k]
+                else:
+                    fv = pref_filter[k]
+                    pv = pc[k]
+                    if isinstance(fv,(tuple,list)):
+                        if isinstance(pv,(tuple,list)):
+                            intersect = []
+                            for v in pv:
+                                if v in fv:
+                                    intersect.append(v)
+                            if len(intersect) == 0:
+                                # There is no overlap, so no candidate can satisfy these requirements
+                                pref_filter = None
+                            pref_filter[k] = intersect
+                        else:
+                            if pv in fv:
+                                pref_filter[k] = pv
+                            else:
+                                # No overlap
+                                pref_filter = None
+                    else:
+                        if isinstance(pv,(tuple,list)):
+                            if fv in pv:
+                                pref_filter[k] = fv
+                            else:
+                                # No overlap
+                                pref_filter = None
+                        else:
+                            if fv == pv:
+                                pref_filter[k] = fv
+                            else:
+                                pref_filter = None
+        if pref_filter == None:
+            # The differences between our requirements and our
+            # preferences couldn't be mutually satisifed so we skip
+            # this search
+            continue
+                                
+        pref = pick_best(record_type, population, pref_filter, rank_attrib, threshold, remove=False)
+
+        if pref != None:    
+            if pref.quality + tol > best.quality:
+                if remove:
+                    # The mask_ field in an individual record give the index in the popluation.
+                    population.mask_[pref.mask_] = False
+                return pref
+
     else:
-        # OK, this is dumb.  I don't have an easier way to remove the
-        # selected candidate than to re-run the selection...
+        # If I'm here, none of our preferences were selected, so return the overall best!
         if remove:
             # The mask_ field in an individual record give the index in the popluation.
             population.mask_[best.mask_] = False

@@ -170,7 +170,8 @@ class Faculty:
 class Department:
     """Data structure to represent all the faculty"""
 
-    def __init__(self, population, lines, unfilled_lines=None, threshold=3.):
+    def __init__(self, population, lines, unfilled_lines=None, threshold=3.,
+                 minimum_open_lines = 0):
         """Constructor
 
         Args:
@@ -178,6 +179,8 @@ class Department:
            population (CandidatePopulation): The distribution of candidates 
                 from which to fill out the faculty population.
            threshold (float): The mininum quality for a faculty member
+           minimum_open_lines (int): The smallest number of open lines a field can have.  
+                Set to negative to allow fields to borrow lines from others.
         """
 
         if 'field' not in population.record_type._fields:
@@ -189,7 +192,9 @@ class Department:
             unfilled_lines = Counter()
         else:
             self.unfilled_lines = Counter(unfilled_lines)
-        
+
+        self.open_min = minimum_open_lines
+            
         # We're going to fill up the faculty by running searches until all the lines are filled
         # Start by making a list of positions to search for.  It's like a predetermined list of retirements
         self.faculty = []
@@ -233,9 +238,57 @@ class Department:
             lines_to_fill.extend(retirements.elements())
             
             
+    def add_faculty(self, candidate, new_line=False, convert_line=None):
+        """Add a new member to the faculty.  If there is an unfilled line in 
+        the candidate's field, decrement that unfilled line count.  Otherwise
+        either increase the number of total lines or convert a line, as directed
+        by the arguments.  Specifying `new_line` or `convert_line` will do nothing 
+        in the case that an appropriate unfilled line is available.
+
+        Args:
+           candidate (namedtuple): The demographic and quality information for the new hire.
+           new_line (bool): If true, will increase the faculty lines if none are open.
+           convert_line (str): If not `None` will swap an unused line from the specified field.
+               Can also specify a tuple of strings to allow swapping from a list of fields, 
+               in the order specified in the tuple        
+        """
+        self.faculty.append(Faculty(**candidate._asdict()))
+        if self.unfilled_lines[candidate.field] > self.open_min:
+            self.unfilled_lines[candidate.field]-=1
+        else:
+            # Hey, looks like we've hired someone into a line that didn't exist
+            self.lines[candidate.field]+=1
+            if not new_line:
+
+                if sum(self.unfilled_lines.values()) == 0:
+                    raise ValueError('No available line for this new hire.')
+                
+                if isinstance(convert_line, (tuple,list)):
+                    for f in convert_line:
+                        if self.unfilled_lines[f] > self.open_min:
+                            break
+                    else:
+                        # Pick a random field
+                        f = np.random.choice(list(self.unfilled_lines.elements()))
+
+                elif isinstance(convert_line, str):
+                    if self.unfilled_lines[convert_line] > self.open_min:
+                        f = convert_line
+                    else:
+                        # Pick a random field
+                        f = np.random.choice(list(self.unfilled_lines.elements()))
+                else:
+                    # Pick a random field
+                    f = np.random.choice(list(self.unfilled_lines.elements()))
+
+                # Reduce the unfilled line in the chosen field
+                self.unfilled_lines[f]-= 1
+                self.lines[f]-= 1
+                    
+                                             
     def next_year(self):
         """Move the department forward by one year.  Everyone gets one year older.  
-           Some faculty may retire.
+        Some faculty may retire.
         """
         # Age the faculty
         retirements = []
@@ -315,7 +368,5 @@ class Department:
             print('')
             print('Unfilled Lines:')
             for f in self.unfilled_lines.keys():
-                if self.unfilled_lines[f] > 0:
-                    print('{}: {:3d}'.format(f,self.unfilled_lines[f]))
-
-                      
+                print('{}: {:3d}'.format(f,self.unfilled_lines[f]))
+                    
