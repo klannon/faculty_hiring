@@ -102,8 +102,8 @@ class CandidatePopulation:
                 # "min_quality"
                 sq2 = math.sqrt(2)
                 l = special.erf(min_quality/sq2)
-                x = np.random.uniform(low=1, high=1.0, size=num)
-                attrib_vals.append(math.sqrt(2)*special.erfinv(x))
+                x = np.random.uniform(low=l, high=1.0, size=num)
+                attrib_vals.append(sq2*special.erfinv(x))
             elif attrib == 'mask_':
                 attrib_vals.append(np.full(num, True))
             else:
