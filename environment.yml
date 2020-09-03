@@ -6,4 +6,6 @@ dependencies:
   - python
   - pyscaffold
   - numpy
+  - seaborn
+  - line_profiler
 prefix: /Users/klannon/miniconda3/envs/faculty_hiring
