@@ -92,7 +92,7 @@ def pick_pref(record_type, population, preference_criteria, rank_tolerance,
     if not isinstance(preference_criteria,(tuple, list)):
         preference_criteria = (preference_criteria,)
     if not isinstance(rank_tolerance,(tuple,list)):
-        rank_tolerance = len(perference_criteria)*[rank_tolerance]
+        rank_tolerance = len(preference_criteria)*[rank_tolerance]
 
     # We check each one in order.  The first one that satisfies is returned.
     for pc, tol in zip(preference_criteria,rank_tolerance):

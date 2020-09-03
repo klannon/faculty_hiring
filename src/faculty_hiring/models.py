@@ -6,6 +6,7 @@ import logging, sys
 from collections import namedtuple, Counter
 import math, statistics
 import numpy as np
+from scipy import special
 from faculty_hiring import strategy
 
 from faculty_hiring import __version__
@@ -32,7 +33,6 @@ class CandidatePopulation:
 
     def __init__(self):
         self.attributes = {'quality':None, 'mask_':None}
-        self.attrib_dtypes = {'quality':np.dtype(float), 'mask_':np.dtype(bool)}
         self.record_type = None
 
     def add_attribute(self,name,values):
@@ -56,53 +56,33 @@ class CandidatePopulation:
             msg += 'Values = {}'.format(values)
             raise TypeError(msg)
 
-        # Decode the type
-        if t == int:
-            self.attrib_dtypes[name] = np.dtype(int)
-        elif t == float:
-            self.attrib_dtypes[name] = np.dtype(float)
-        elif t == str:
-            maxlen = max([len(x) for x in values.keys()])
-            type_str = 'U{:d}'.format(maxlen)
-            self.attrib_dtypes[name] = np.dtype(type_str)
-        else:
-            msg =  "Attribute {} has ".format(name)
-            msg += "values of type {} ".format(t)
-            msg += "which isn't currently handled."
-            raise TypeError(msg)
-
         # Store the attribute values
         self.attributes[name] = values
         self.record_type = namedtuple('Candidate',
                                       sorted(self.attributes.keys()))
 
-
     def generate_candidate(self, min_quality = 2.0):
-        """Randomly generate the attributes of one faculty candidate"""
+        """Randomly generate the attributes of one faculty candidate
 
-        # Generate the attribute values and store them on a list
+        This used to be a building block method, but not I'm just
+        leaving it here for posterity as all the work is done in
+        `gerenate_population()`.
+        """
+
+        # Use generate population to make a size=1 population
+        x = self.generate_population(1, fluctuate=False, min_quality=min_quality)
+
+        # Since we're expecting a record with simple types rather than
+        # length=1 Numpy arrays, just do a little shenanegins to get
+        # this sorted out.
         attrib_vals = []
         for attrib in sorted(self.attributes.keys()):
-            if attrib == 'quality':
-                # Generate the candidate quality score.
-                # We model "quality" with a unit normal distribution.
-                # But we assume faculty candidates are already out on
-                # the 3 sigma tail.
-                # I know this is computationally wasteful, but it's easy
-                quality = abs(np.random.standard_normal())
-                while quality < min_quality:
-                    quality = abs(np.random.standard_normal())
-                attrib_vals.append(quality)
-            elif attrib == 'mask_':
-                attrib_vals.append(True)
-            else:
-                values = self.attributes[attrib]
-                val = np.random.choice(list(values.keys()),p=list(values.values()))
-                attrib_vals.append(val)
+            attrib_vals.append(getattr(x,attrib)[0])
 
         return self.record_type(*attrib_vals)
 
-    def generate_population(self,num, fluctuate = True):
+    def generate_population(self,num, fluctuate = True, min_quality=2.0):
+
         """Create a population of "num" candidates.
 
         Args:
@@ -116,15 +96,22 @@ class CandidatePopulation:
         # in this population (i.e. the columns)
         attrib_vals = []
         for attrib in sorted(self.attributes.keys()):
-            dt = self.attrib_dtypes[attrib]
-            attrib_vals.append(np.empty(num,dt))
+            if attrib == 'quality':
+                # This voodoo generates a random number on a normal
+                # distribution, only for the positive tail above
+                # "min_quality"
+                sq2 = math.sqrt(2)
+                l = special.erf(min_quality/sq2)
+                x = np.random.uniform(low=1, high=1.0, size=num)
+                attrib_vals.append(math.sqrt(2)*special.erfinv(x))
+            elif attrib == 'mask_':
+                attrib_vals.append(np.full(num, True))
+            else:
+                values = self.attributes[attrib]
+                val = np.random.choice(list(values.keys()),p=list(values.values()),size=num)
+                attrib_vals.append(val)
 
         p = self.record_type(*attrib_vals)
-
-        for i in range(num):
-            r = self.generate_candidate()
-            for attrib in sorted(self.attributes.keys()):
-                getattr(p,attrib)[i] = getattr(r,attrib)
 
         return p
 
