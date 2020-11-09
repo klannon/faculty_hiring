@@ -1,5 +1,6 @@
 name: faculty_hiring
 channels:
+  - conda-forge
   - defaults
 dependencies:
   - jupyterlab

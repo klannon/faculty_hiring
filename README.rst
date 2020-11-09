@@ -20,9 +20,17 @@ assumes gender is binary, so that the mathematical definition of
 equity can be 50% of each gender.)
 
 You can run the "hiring strategy" notebook interactively here: |logo|
+You can run the "department" notebook interactively here: |logo2|
+And you can run a notebook with different voting methods implement here: |logo3|
 
 .. |logo| image:: https://mybinder.org/badge_logo.svg
  :target: https://mybinder.org/v2/gh/klannon/faculty_hiring/master?filepath=notebooks%2Fsearch_strategy.ipynb
+
+.. |logo2| image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/klannon/faculty_hiring/master?filepath=notebooks%2Fdepartment.ipynb
+
+.. |logo3| image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/klannon/faculty_hiring/master?filepath=notebooks%2Ftennessee_example.ipynb
 
 
 Note
